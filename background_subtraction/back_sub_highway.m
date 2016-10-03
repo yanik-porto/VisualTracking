@@ -7,9 +7,9 @@
 % Authors: You !!
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-clc
-clear all
-close all
+% clc
+% clear all
+% close all
 
 
 %%%%% LOAD THE IMAGES
@@ -64,8 +64,7 @@ B = ImSeq(:,:,1);
 % method = 1; %With median = 1
 method = 1; %With update = 2
 
-% Describe here your background subtraction method
-% for i = 471:NumImages
+%Try with different thresholds
 i = 1690;
 j = 1;
 for T = 0.1:0.1:1
@@ -74,38 +73,21 @@ for T = 0.1:0.1:1
         B = median(ImSeq(:,:,i-470:i-1),3);
     end
     Diff = mat2gray(abs(I - B));
-%     mask = Diff > graythresh(Diff);
     mask = Diff > T;
     
     %Get only foreground
     F = mask.*I;
+    I_track = im2bw(F);
     
     %Update
     B(mask) = alpha*I(mask)+(1-alpha)*B(mask);
-    
-    %Proprocessing for better detection
-    I_track = im2bw(F);
-%     I_track = imerode(I_track, strel('rectangle', [2 2]));
-%     I_track = imdilate(I_track, strel('rectangle', [5 5]));
-    
-%     %Detect biggest area
-%     s = regionprops(I_track, 'BoundingBox', 'Area');
-%     area = cat(1, s.Area);
-%     if(area)
-%         [~,ind] = max(area);
-%         bbox = s(ind).BoundingBox;
-%     end
-%    
+
     %Dipslay results
     subplot(121), imshow(GtSeq(:,:,i),[]), title('Ground truth');
     subplot(122),imshow(I_track,[]), title('Detected moving objects');
-%     subplot(133),imshow(I,[]), title('Moving object with bounding box)');
-%     if(area)
-%         hold on;
-%         rectangle('Position', bbox,'EdgeColor','r');
-%         hold off;
-%     end
     drawnow;
+    
+    %Compute F-score
     false_p = sum(sum((I_track - GtSeq(:,:,i)) > 0));
     true_p = sum(sum((I_track == 1) & (GtSeq(:,:,i) == 1)));
     false_n = sum(sum((I_track - GtSeq(:,:,i)) < 0));
@@ -117,6 +99,7 @@ for T = 0.1:0.1:1
     
 end
 
+%Plot precsion and recall with moving threshold
 figure;
 plot(1-recall(1,1:9),precision(1,1:9));
 title('Precision according to the recall while the threshold is increasing');
@@ -131,10 +114,8 @@ ylabel('precision');
 alpha = 0.01;
 mu = ImSeq(:,:,1);
 sig = ones(size(I))*50;
-% T = 2.5;
 
-%Iterate over all images
-% for i = 1:NumImages
+%Try with different thresholds
 i = 1690;
 j = 1;
 for T = 1:0.5:5
@@ -148,32 +129,14 @@ for T = 1:0.5:5
     %detect foreground
     mask = abs(I-mu) > T*sqrt(sig);
     F = I.*mask;
-    
-    %Proprocessing for better detection
     I_track = im2bw(F);
-%     I_track = imopen(I_track, strel('rectangle', [2 2]));
-%     I_track = imerode(I_track, strel('rectangle', [2 2]));
-%     I_track = imdilate(I_track, strel('rectangle', [5 5]));
-%     
-%     %Detect biggest area
-%     s = regionprops(I_track, 'BoundingBox', 'Area');
-%     area = cat(1, s.Area);
-%     if(area)
-%         [~,ind] = max(area);
-%         bbox = s(ind).BoundingBox;
-%     end
     
     %Dipslay results
     subplot(121), imshow(GtSeq(:,:,i),[]), title('Ground truth');
     subplot(122),imshow(I_track,[]), title('Detected moving objects');
-% %     subplot(133),imshow(I,[]), title('Moving object with bounding box)');
-%     if(area)
-%         hold on;
-%         rectangle('Position', bbox,'EdgeColor','r');
-%         hold off;
-%     end
     drawnow;   
     
+    %Compute F-score
     false_p = sum(sum((I_track - GtSeq(:,:,i)) > 0));
     true_p = sum(sum((I_track == 1) & (GtSeq(:,:,i) == 1)));
     false_n = sum(sum((I_track - GtSeq(:,:,i)) < 0));
@@ -185,6 +148,7 @@ for T = 1:0.5:5
     j = j+1;
 end
 
+%Plot precsion and recall with moving threshold
 figure;
 plot(1-recall(2,1:9),precision(2,1:9));
 title('Precision according to the recall while the threshold is increasing');
@@ -217,7 +181,7 @@ X = x - repmat(m,1,size(x,2));
 %Keep the k principal components of U
 Uk = U(:,1:k);
 
-% for i = 1:NumImages
+%Try with different thresholds
 i = 1690;
 j = 1;
 for T = 10:5:50
@@ -229,40 +193,25 @@ for T = 10:5:50
     %Detect moving object
     mask = abs(y_hat - y) > T;
     F = reshape(y .* mask, VIDEO_HEIGHT, VIDEO_WIDTH);
-    
-    %Get the bounding box
     I_track = im2bw(F);
-%     I_track = imerode(I_track, strel('rectangle', [2 2]));
-%     I_track = imdilate(I_track, strel('rectangle', [5 5]));
-%     s = regionprops(I_track, 'BoundingBox', 'Area');
-%     area = cat(1, s.Area);
-%     if(area)
-%         [~,ind] = max(area);
-%         bbox = s(ind).BoundingBox;
-%     end
     
     %Dipslay results
     subplot(121), imshow(GtSeq(:,:,i),[]), title('Ground truth');
     subplot(122),imshow(I_track,[]), title('Detected moving objects');
-%     subplot(133),imshow(I,[]), title('Moving object with bounding box)');
-%     if(area)
-%         hold on;
-%         rectangle('Position', bbox,'EdgeColor','r');
-%         hold off;
-%     end
     drawnow;
     
+    %Compute F-score
     false_p = sum(sum((I_track - GtSeq(:,:,i)) > 0));
     true_p = sum(sum((I_track == 1) & (GtSeq(:,:,i) == 1)));
     false_n = sum(sum((I_track - GtSeq(:,:,i)) < 0));
     precision(3,j) = true_p/(true_p + false_p);
     recall(3,j) = true_p/(true_p + false_n);
     F_score(3,j) = 2*(precision(3,j)*recall(3,j))/(precision(3,j)+recall(3,j));
-    disp(i);
 
     j = j+1;
 end
 
+%Plot precsion and recall with moving threshold
 figure;
 plot(1-recall(3,1:9),precision(3,1:9));
 title('Precision according to the recall while the threshold is increasing');

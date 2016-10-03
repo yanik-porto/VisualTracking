@@ -71,7 +71,7 @@ for i = 1:NumImages
     %Update
     B(mask) = alpha*I(mask)+(1-alpha)*B(mask);
     
-    %Proprocessing for better detection
+    %Post processing for better detection
     I_track = im2bw(F);
     I_track = imerode(I_track, strel('rectangle', [2 2]));
     I_track = imdilate(I_track, strel('rectangle', [5 5]));
@@ -120,9 +120,8 @@ for i = 1:NumImages
     mask = abs(I-mu) > T*sqrt(sig);
     F = I.*mask;
     
-    %Proprocessing for better detection
+    %Post processing for better detection
     I_track = im2bw(F);
-%     I_track = imopen(I_track, strel('rectangle', [2 2]));
     I_track = imerode(I_track, strel('rectangle', [2 2]));
     I_track = imdilate(I_track, strel('rectangle', [5 5]));
     
