@@ -21,6 +21,8 @@ close all
 
 %% read images
 imPath = 'Sequences/car'; imExt = 'jpg';
+% imPath = 'Sequences/Toy'; imExt = 'png';
+% imPath = 'Sequences/black_square'; imExt = 'png';
 
 %%%%% LOAD THE IMAGES
 %=======================
@@ -45,6 +47,7 @@ VIDEO_HEIGHT = size(I,1);
 ImSeq = zeros(VIDEO_HEIGHT, VIDEO_WIDTH, NumImages);
 for i=1:NumImages
     imgname = [imPath filesep filearray(i).name]; % get image name
+%     ImSeq(:,:,i) = rgb2gray(imread(imgname)); % load image
     ImSeq(:,:,i) = imread(imgname); % load image
 end
 disp(' ... OK!');
@@ -60,6 +63,7 @@ disp(' ... OK!');
 [patch, rect] = imcrop(ImSeq(:,:,1)./255);
 
 
+
 % DEFINE A BOUNDING BOX AROUND THE OBTAINED REGION : this gives the initial state
 
 % Get ROI Parameters
@@ -67,7 +71,14 @@ rect = round(rect);
 ROI_Center = round([rect(1)+rect(3)/2, rect(2)+rect(4)/2]); 
 ROI_Width = rect(3);
 ROI_Height = rect(4);
-
+% For black_square sequence 
+% ROI_Center = [200,300];
+% ROI_Width = 40;
+% ROI_Height = 40;
+% For car sequence
+% ROI_Center = [220,140];
+% ROI_Width = 40;
+% ROI_Height = 40;
 % you can draw the bounding box and show it on the image
 
 
@@ -82,16 +93,20 @@ imPatch = extract_image_patch_center_size(ImSeq(:,:,1), ROI_Center, ROI_Width, R
 % color distribution in RGB color space
 Nbins = 8;
 TargetModel = color_distribution(imPatch, Nbins);
-
+figure(2);
+bar(TargetModel);
+figure(1);
+imshow(imPatch,[]);
 
 %% Mean-Shift Algorithm 
 prev_center = ROI_Center; % set the location to the previous one 
-figure;
+figure(1);
 
 for n = 2:NumImages
 
     % get next frame
     I = ImSeq(:,:,n);
+    figure(1);
     imshow(I, []);
     hold on;
     while(1)
@@ -99,7 +114,8 @@ for n = 2:NumImages
     	% calculate the pdf of the previous position
     	imPatch = extract_image_patch_center_size(I, prev_center, ROI_Width, ROI_Height);
     	ColorModel = color_distribution(imPatch, Nbins);
-    
+%         figure(2);
+%         bar(ColorModel);
     	% evaluate the Bhattacharyya coefficient
      	rho_0 = compute_bhattacharyya_coefficient(TargetModel, ColorModel);
     
@@ -111,6 +127,19 @@ for n = 2:NumImages
     	% compute the mean-shift vector
     	% using Epanechnikov kernel, it reduces to a weighted average
         z = compute_meanshift_vector(imPatch, prev_center, weights);
+        
+        %Check if the bhattacharyya coeff is higher with the new center
+        %If not, take the half between both centers
+        newImPatch = extract_image_patch_center_size(I, z, ROI_Width, ROI_Height);
+        newColorModel = color_distribution(newImPatch, Nbins);
+        newRho_0 = compute_bhattacharyya_coefficient(TargetModel, newColorModel);
+        while(newRho_0 < rho_0)              
+            z = 0.5*(prev_center + z);            
+            newImPatch = extract_image_patch_center_size(I, z, ROI_Width, ROI_Height);
+            newColorModel = color_distribution(newImPatch, Nbins);
+            newRho_0 = compute_bhattacharyya_coefficient(TargetModel, newColorModel);
+        end
+        
         display(prev_center);
         display(z);
     	new_center =  z;
@@ -119,14 +148,19 @@ for n = 2:NumImages
         %% STEP 4 and 5 should be here !!
         
         % STEP 6
-    	if norm(new_center-prev_center, 1) < eps
+    	if norm(new_center-prev_center, 1) < 10^(-5)%eps
+            disp('found');
+            prev_center = new_center;
        		break
     	end
     	prev_center = new_center;
     end
 	
-    % Show your tracking results   
-    plot(prev_center, '*r');
+    % Show your tracking results
+    figure(1);
+    hold on;
+    plot(prev_center(1),prev_center(2), '*r');
+%     pause;
     drawnow;
 end
 

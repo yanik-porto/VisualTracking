@@ -10,7 +10,7 @@ function w = compute_weights(imPatch, q, p, m)
 % w = weights 
 
 %Compute the ratio vector btw both color distributions
-ratio = sqrt(p./q);
+ratio = sqrt(q./p);
 
 %Find weights over all the patch, for every pixels
 for i = 1:size(imPatch,1)
